@@ -95,7 +95,7 @@ def handle_signup():
    
    
   
-   new_user = User(email=data['email'], password= pwd_hash, is_active=True)
+   new_user = User(email=data['email'], password=data['password'], is_active=True)
    db.session.add(new_user)
    db.session.commit()
 
