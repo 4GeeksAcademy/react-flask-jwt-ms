@@ -21,6 +21,7 @@ ENV = os.getenv("FLASK_ENV")
 static_file_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../public/')
 app = Flask(__name__)
 app.url_map.strict_slashes = False
+app.config['JWT_SECRET_KEY']= 'myjwtsecretkey'
 
 # database condiguration
 db_url = os.getenv("DATABASE_URL")
@@ -49,7 +50,6 @@ app.register_blueprint(api, url_prefix='/api')
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code
-
 
 #Function to encode a token
 def encode_auth_token(user_id):
@@ -93,14 +93,32 @@ def handle_signup():
    if user:
        return jsonify(message= 'user alredy exist'), 400
    
+   hashed_password = generate_password_hash(data['password'], method='sha256')
    
-  
-   new_user = User(email=data['email'], password=data['password'], is_active=True)
+   
+   new_user = User(email=data['email'], password=hashed_password, is_active=True)
    db.session.add(new_user)
    db.session.commit()
 
    aut_token = encode_auth_token(new_user.id)
    return jsonify(aut_token = aut_token), 201
+
+@app.route('/login', methods=['POST'])
+def handle_login():
+
+   data = request.get_json()
+
+   user = User.query.filter_by(email=data['email']).first()
+   if not user:
+       return jsonify(message= 'user not found'), 400
+   
+   if check_password_hash(user.password, data['password']):
+       auth_token = encode_auth_token(user.id)
+       return jsonify(auth_token=auth_token)
+   else:
+       return jsonify(message='Wrong credentials'), 401
+   
+    
 
 
 
